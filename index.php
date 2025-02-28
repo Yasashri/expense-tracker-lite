@@ -2,64 +2,59 @@
 include('dbconnection.php');
 include('session.php');
 
-// Initialize success message
-$successMessage = "";
+// Pagination setup
+$limit = 10; // Records per page
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $limit;
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $date = $_POST['date'];
-    $expense_name = $_POST['expense_name'];
-    $cost = $_POST['cost'];
-    $description = $_POST['description'];
+// Get total records count
+$totalStmt = $pdo->query("SELECT COUNT(DISTINCT date) AS total FROM expenses");
+$totalDates = $totalStmt->fetch()['total'];
+$totalPages = ceil($totalDates / $limit);
 
-    // Insert the expense record into the database
-    $stmt = $pdo->prepare("INSERT INTO expenses (date, expense_name, cost, description) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$date, $expense_name, $cost, $description]);
-
-    // Set success message to show toast
-    $successMessage = "Record added successfully!";
-}
+// Fetch distinct dates with pagination
+$stmt = $pdo->prepare("SELECT DISTINCT date FROM expenses ORDER BY date DESC LIMIT $limit OFFSET $offset");
+$stmt->execute();
+$dates = $stmt->fetchAll();
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expenses</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+    <title>Expense Dates</title>
+    <link rel="stylesheet" href="dates.css">
 </head>
-
 <body>
     <div class="container">
-        <h2>බෝල බන්ඩි Expenses</h2>
-        <a href="view_expenses.php"><button class="all-expenses">View all my expenses</button></a>
-        <form method="POST">
-            <label for="date">Date:</label>
-            <input type="date" name="date" id="date" value="<?= date('Y-m-d'); ?>" required>
+        <h2>Available Expense Dates</h2>
+            <a class="back-to-all" href="new_record.php">Add new expense</a>
+        <!-- Date Cards -->
+        <div class="date-list">
+            <?php if ($dates): ?>
+                <?php foreach ($dates as $date): ?>
+                    <a href="view_expenses.php?date=<?php echo $date['date']; ?>" class="date-card">
+                        <span><?php echo $date['date']; ?></span>
+                    </a>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p>No expense records found.</p>
+            <?php endif; ?>
+        </div>
 
-            <label for="expense_name">Expense Name/Item:</label>
-            <input type="text" name="expense_name" id="expense_name" required>
+        <!-- Pagination -->
+        <div class="pagination">
+            <?php if ($page > 1): ?>
+                <a href="?page=<?php echo $page - 1; ?>" class="prev">Previous</a>
+            <?php endif; ?>
 
-            <label for="cost">Cost:</label>
-            <input type="number" name="cost" id="cost" required>
+            <span>Page <?php echo $page; ?> of <?php echo $totalPages; ?></span>
 
-            <label for="description">Description:</label>
-            <textarea name="description" id="description" rows="4" required></textarea>
-
-            <button type="submit">Submit</button>
-        </form>
+            <?php if ($page < $totalPages): ?>
+                <a href="?page=<?php echo $page + 1; ?>" class="next">Next</a>
+            <?php endif; ?>
+        </div>
     </div>
-
-    <?php if ($successMessage): ?>
-        <script>
-            toastr.success("<?= $successMessage; ?>"); // Show the success toast
-            document.querySelector("form").reset(); // Reset the form for next entry
-        </script>
-    <?php endif; ?>
-
 </body>
-
 </html>

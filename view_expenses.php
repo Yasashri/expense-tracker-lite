@@ -2,8 +2,14 @@
 include('dbconnection.php');
 include('session.php');
 
-// Set default date to today's date if no date is selected
-$date = isset($_POST['date']) ? $_POST['date'] : date('Y-m-d');
+// Determine the date to fetch records for
+if (isset($_GET['date'])) {
+    // If coming from date_list.php, use the selected date
+    $date = $_GET['date'];
+} else {
+    // Otherwise, use the date from form submission or default to today's date
+    $date = isset($_POST['date']) ? $_POST['date'] : date('Y-m-d');
+}
 
 // Get expenses for the selected date
 $stmt = $pdo->prepare("SELECT * FROM expenses WHERE date = ?");
@@ -36,7 +42,6 @@ foreach ($expenses as $expense) {
             <label for="date">Select Date:</label>
             <input type="date" id="date" name="date" value="<?php echo $date; ?>" required>
             <button type="submit">View</button>
-
         </form>
 
         <!-- Table to display expenses -->
@@ -53,7 +58,7 @@ foreach ($expenses as $expense) {
                     <?php foreach ($expenses as $expense): ?>
                         <tr>
                             <td><?php echo $expense['expense_name']; ?></td>
-                            <td><?php echo $expense['cost']; ?></td>
+                            <td><?php echo number_format($expense['cost'], 2); ?></td>
                             <td><?php echo $expense['description']; ?></td>
                         </tr>
                     <?php endforeach; ?>
@@ -72,7 +77,7 @@ foreach ($expenses as $expense) {
             </div>
         <?php endif; ?>
 
-        <a href="index.php"> <button class="back"> Back </button></a>
+        <a href="index.php"><button class="back">Back</button></a>
     </div>
 </body>
 
